@@ -56,6 +56,11 @@ def initialize(database: Path):
         columns = {row["name"] for row in connection.execute("PRAGMA table_info(chunks)")}
         if "embedding_input_type" not in columns:
             connection.execute("ALTER TABLE chunks ADD COLUMN embedding_input_type TEXT")
+        message_columns = {row["name"] for row in connection.execute("PRAGMA table_info(messages)")}
+        if "answer_type" not in message_columns:
+            connection.execute("ALTER TABLE messages ADD COLUMN answer_type TEXT NOT NULL DEFAULT 'unknown'")
+        if "assumptions_json" not in message_columns:
+            connection.execute("ALTER TABLE messages ADD COLUMN assumptions_json TEXT NOT NULL DEFAULT '[]'")
 
 
 def save_documents(database, documents, splitter):
@@ -119,7 +124,8 @@ def create_session(database):
 def save_exchange(database, session_id, question, answer):
     with connect(database) as connection:
         connection.executemany(
-            "INSERT INTO messages(session_id,role,content,sources_json) VALUES(?,?,?,?)",
-            [(session_id, "user", question, "[]"),
-             (session_id, "assistant", answer.text, json.dumps(answer.sources, ensure_ascii=False))],
+            "INSERT INTO messages(session_id,role,content,sources_json,answer_type,assumptions_json) VALUES(?,?,?,?,?,?)",
+            [(session_id, "user", question, "[]", "unknown", "[]"),
+             (session_id, "assistant", answer.text, json.dumps(answer.sources, ensure_ascii=False),
+              answer.answer_type, json.dumps(answer.assumptions, ensure_ascii=False))],
         )

@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 
 from . import storage
-from .openrouter import validate_vectors
+from .gemini import validate_vectors
 
 REQUIRED = ("document_id", "title", "content", "source_title")
 

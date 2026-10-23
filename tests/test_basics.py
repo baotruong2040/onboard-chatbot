@@ -29,19 +29,19 @@ class BasicsTest(unittest.TestCase):
     def test_config_environment_precedence_and_secret(self):
         with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {}, clear=True):
             env = Path(directory) / ".env"
-            env.write_text('OPENROUTER_API_KEY="secret"\nOPENROUTER_CHAT_MODEL=file-model\n', encoding="utf-8")
-            os.environ["OPENROUTER_CHAT_MODEL"] = "environment-model"
+            env.write_text('GEMINI_API_KEY="secret"\nGEMINI_CHAT_MODEL=file-model\n', encoding="utf-8")
+            os.environ["GEMINI_CHAT_MODEL"] = "environment-model"
             config = Config.load(env)
             self.assertEqual(config.chat_model, "environment-model")
             self.assertIn("biến môi trường", config.chat_model_source)
-            del os.environ["OPENROUTER_CHAT_MODEL"]
+            del os.environ["GEMINI_CHAT_MODEL"]
             file_config = Config.load(env)
             self.assertEqual(file_config.chat_model, "file-model")
             self.assertEqual(file_config.chat_model_source, str(env.resolve()))
             self.assertEqual(config.api_key, "secret")
             self.assertNotIn("secret", repr(config))
-            with self.assertRaisesRegex(ValueError, "OPENROUTER_EMBEDDING_MODEL"):
-                config.require_openrouter()
+            with self.assertRaisesRegex(ValueError, "GEMINI_EMBEDDING_MODEL"):
+                config.require_gemini()
 
     def test_cli_help_and_init_without_api_key(self):
         with contextlib.redirect_stdout(io.StringIO()) as output:

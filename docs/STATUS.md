@@ -1,6 +1,58 @@
 # Trạng thái hiện tại
 
-Cập nhật ngày 2026-10-22.
+Cập nhật ngày 2026-10-23.
+
+## Streaming cho ask và chat
+
+Đã thêm Gemini streamGenerateContent?alt=sse, parser SSE từng event UTF-8 và callback in/flush từng đoạn. Dùng lại request body/config hiện tại; embeddings và check-chat không đổi. Ask/chat không in lần hai sau khi stream kết thúc. Chỉ trả Answer hoàn chỉnh sau STOP và text không rỗng; chỉ lúc đó chat mới lưu nguyên văn trong SQLite.
+
+Luồng bị ngắt, payload lỗi, API error, hết token hoặc safety block báo lỗi, không lưu cặp hỏi/đáp dở dang và không retry. Text đã in không thu hồi, CLI thông báo chưa hoàn tất. Ctrl+C trong stream chat hủy lượt/quay lại prompt; ask thoát 130. Context manager đóng response cả khi lỗi/hủy, không in thought/secrets/raw payload.
+
+Trước sửa 14/14 test offline pass; sau sửa 16/16 pass, compileall pass. Test mới xác nhận callback trước khi đọc event tiếp theo, UTF-8/khoảng trắng, không lộ thought, lỗi sau partial, đóng response; chat test xác nhận không in lặp hoặc lưu partial. Đã thử một request streaming thật với key/model cấu hình hiện có nhưng lỗi kết nối Gemini, chưa nhận event nên chưa xác nhận streaming thật. Không đổi key/model hoặc in secrets.
+
+## Văn bản tự nhiên nguyên vẹn
+
+Người dùng chọn bỏ JSON và in trực tiếp văn bản LLM. Đã thay system prompt bằng hướng dẫn văn bản tự nhiên, bỏ parse/validate JSON và phần thêm nhãn/nguồn/giả định. ask/chat in answer.text trực tiếp; Gemini client giữ khoảng trắng/xuống dòng của text cuối, vẫn bỏ thought và báo lỗi API/safety/MAX_TOKENS. Không in raw HTTP envelope. Model được yêu cầu tự trích nguồn và nêu rõ suy luận/ước đoán/giả định, không bịa chính sách; không còn kiểm tra trích dẫn bằng backend.
+
+Câu mới lưu nguyên văn text với answer_type unknown, assumptions/source metadata rỗng; không giả định các đoạn retrieval đều được viện dẫn. SQLite và metadata lịch sử cũ giữ nguyên, không cần index lại. Tests JSON cũ được thay bằng test giữ nguyên văn bản và lưu lịch sử; test HTTP kiểm tra khoảng trắng/thought. API thật chưa xác minh cho thay đổi này.
+
+## Chuyển sang Gemini API trực tiếp
+
+Theo yêu cầu mới thay OpenRouter bằng Gemini cho cả embeddings và generation. Runtime chỉ có onboarding/gemini.py, không thêm provider hoặc SDK. Dùng REST batchEmbedContents (requests/embeddings.values, RETRIEVAL_DOCUMENT/RETRIEVAL_QUERY cho gemini-embedding-001) và generateContent (systemInstruction/contents/candidates). Xác thực x-goog-api-key, không dùng key trong URL, không in raw response/thought/secrets. MAX_TOKENS, safety block, content rỗng và HTTP errors báo lỗi; không tự retry/fallback provider. JSON qua prompt giữ nguyên, backend vẫn validate bốn loại/assumptions/nguồn.
+
+Config chuyển sang GEMINI_API_KEY, GEMINI_EMBEDDING_MODEL, GEMINI_CHAT_MODEL, GEMINI_BASE_URL; không đọc key OpenRouter. Không sửa .env hiện có, không sửa DB/index người dùng. Cần cấu hình key Gemini rồi index lại; đổi model làm index cũ bị từ chối. check-chat chỉ cần key/chat model, không đòi embedding model. .env.example có model ví dụ, người dùng chọn model được cấp quyền.
+
+Trước sửa: 15/16 pass, một test thất bại do DEFAULT_MIN_SCORE lúc đọc đầu tiên là 0.0 nhưng test vẫn ép 0.3. Không sửa ngưỡng trong lần chuyển provider; bỏ ràng buộc giá trị cụ thể trong test phân loại không liên quan retrieval, giữ test retrieval với ngưỡng 0.3 tường minh. Ở lần kiểm tra cuối code đã là 0.3; README/PLAN phản ánh giá trị cuối này. Chưa hiệu chỉnh ngưỡng với Gemini.
+
+Sau chuyển: 17/17 test offline pass, compileall và CLI help pass, gồm hợp đồng HTTP Gemini, task query/document, không lộ key, bỏ thought, safety/MAX_TOKENS/content rỗng, config, CLI, RAG và migration. Config kiểm tra cuối chưa có Gemini key/models nên không gọi API thật. Các phần OpenRouter bên dưới là lịch sử, không phải hướng dẫn runtime hiện hành.
+
+## Sửa chẩn đoán chat khi smoke inferred lỗi
+
+Người dùng xác nhận SMOKE-001 đạt cosine 0.421750 và được gửi tới generation, sau đó client báo phản hồi chat không hợp lệ. Chưa có metadata phản hồi nên chưa xác định nguyên nhân thực tế. Phát hiện giới hạn 700 output token có thể bị reasoning dùng hết theo tài liệu OpenRouter. Tăng lên 4096, báo riêng finish_reason=length (kể cả content bị cắt nhưng không rỗng), content rỗng/sai kiểu và cấu trúc sai. Không dùng reasoning làm đáp án, không log raw response, không retry hoặc đổi model. Bổ sung mock kiểm tra các trường hợp này trong test HTTP hiện có. Cần chạy lại smoke để xác nhận với API thật; chưa tuyên bố nguyên nhân đã được chứng minh.
+
+## Mở rộng suy luận và ước đoán
+
+Theo yêu cầu mới, thay quy tắc context-only bằng grounded/inferred/estimate/clarification. Đã mở rộng Answer, prompt JSON và parse/validate ở backend: kiểu hợp lệ, câu trả lời không rỗng, assumptions chuỗi, source_ids số nguyên thuộc context, grounded/inferred phải có nguồn, estimate phải có giả định và không nguồn, [n] khớp nguồn. Chỉ hiện nguồn được viện dẫn. JSON sai trả thông báo chưa xác minh, không in raw response. Nhãn và giả định hiển thị trong console; không đưa tên trường JSON ra giao diện.
+
+Kho rỗng hoặc không đoạn đạt ngưỡng gọi generation với context rỗng. API lỗi/index thiếu vector/sai model/dimension vẫn báo lỗi, không chuyển sang đoán. Prompt chỉ cho ước đoán lịch thông thường/gợi ý onboarding; không tự đặt lương, quyền lợi, điều kiện nghỉ phép, thông tin cá nhân, mật khẩu hoặc chính sách chính thức. Không chặn từ khóa; hướng dẫn có nguồn vẫn được phép. Không có bộ nhớ hội thoại, không nhập dự đoán vào KB hoặc tạo embeddings cho dự đoán.
+
+Thống nhất DEFAULT_MIN_SCORE=0.3 trong service/CLI/README, thay mức 0.2 của lần rà soát trước. Lý do: 0.3 đã có smoke retrieval thật từ người dùng; không có bằng chứng đủ rộng để giữ mức thấp hơn. Không hạ ngưỡng nhằm ép nguồn. Test cũ được cập nhật vì thiếu nguồn nay gọi generation, không phải để che lỗi chọn nguồn.
+
+Migration messages thêm answer_type (mặc định unknown) và assumptions_json ([]), giữ nguyên nội dung/nguồn lịch sử cũ. Không tự xem bản ghi cũ là grounded. Chạy init lặp không mất metadata mới.
+
+Kiểm tra thực tế: trước sửa 12/12 test offline pass. Sau sửa 16/16 pass; compileall và ask --help pass. Bốn test mới bao phủ loại grounded/inferred, estimate/clarification thiếu chính sách, JSON/nguồn sai, migration và lưu metadata. Test dùng fake/mock chỉ chứng minh luồng xử lý; không chứng minh model thật suy luận đúng hoặc tuân thủ mọi hạn chế chính sách.
+
+Đã đọc tài liệu structured outputs và catalog OpenRouter: recursive/flint-v1.0:free liệt kê response_format, nhưng hỗ trợ schema phụ thuộc endpoint. Chưa bật response_format; dùng prompt JSON và validation. Giữ nguyên key/model. Smoke generation thật dự kiến ba trường hợp với context giả lập: request đầu bị lỗi kết nối OpenRouter trong môi trường agent, nên dừng hai request còn lại. Chưa nhận được JSON thật, chưa xác minh suy luận/ước đoán/model tuân thủ chính sách. Smoke cũ của người dùng thuộc hành vi trước thay đổi này.
+
+Hạn chế: backend kiểm tra cấu trúc và liên kết nguồn, chưa kiểm chứng ngữ nghĩa/phép tính hoặc mọi chính sách bịa đặt. Nhãn ước đoán không bảo đảm thông tin là chính sách thực tế. Cần smoke thật bằng terminal người dùng trước khi dựa vào hành vi mới.
+
+## Rà soát nền tảng bước 4
+
+Đủ nền tảng để phát triển tiếp trong phạm vi demo console: CLI, import/index, RAG và lưu phiên đã có kiểm thử offline. Phát hiện code hiện đặt DEFAULT_MIN_SCORE=0.2 trong khi README/test còn kỳ vọng 0.3. Giữ nguyên code hiện tại; sửa test kiểm tra ngưỡng 0.3 tường minh và cập nhật README. Không thay key/model hoặc index.
+
+Smoke thật đã được người dùng xác nhận cho check-chat và ask ở ngưỡng 0.3; chưa xác nhận vòng chat thật hoặc chất lượng nhiều câu ở ngưỡng 0.2. Trước khi mở rộng đáng kể, nên chạy chat với một câu có nguồn, một câu ngoài kho rồi /exit. Lịch sử chỉ lưu trữ, chưa hỗ trợ câu hỏi nối tiếp; nguồn context chưa phải kiểm chứng độc lập nội dung generation.
+
+Các mục bên dưới là lịch sử triển khai; những ghi chú “chưa triển khai/chưa xác nhận” cũ được thay thế bởi trạng thái mới hơn ở đầu file.
 
 ## Hoàn thành console và xác nhận live RAG
 

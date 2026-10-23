@@ -11,7 +11,7 @@ class Config:
     api_key: str = field(default="", repr=False)
     embedding_model: str = ""
     chat_model: str = ""
-    base_url: str = "https://openrouter.ai/api/v1"
+    base_url: str = "https://generativelanguage.googleapis.com/v1beta"
     chat_model_source: str = "cấu hình trực tiếp"
 
     @classmethod
@@ -39,26 +39,26 @@ class Config:
 
         return cls(
             database=Path(get("ONBOARDING_DB_PATH", ".local/onboarding.sqlite3")),
-            api_key=get("OPENROUTER_API_KEY"),
-            embedding_model=get("OPENROUTER_EMBEDDING_MODEL"),
-            chat_model=get("OPENROUTER_CHAT_MODEL"),
-            base_url=get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1").rstrip("/"),
+            api_key=get("GEMINI_API_KEY"),
+            embedding_model=get("GEMINI_EMBEDDING_MODEL"),
+            chat_model=get("GEMINI_CHAT_MODEL"),
+            base_url=get("GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta").rstrip("/"),
             chat_model_source=(
-                "biến môi trường OPENROUTER_CHAT_MODEL"
-                if "OPENROUTER_CHAT_MODEL" in os.environ
+                "biến môi trường GEMINI_CHAT_MODEL"
+                if "GEMINI_CHAT_MODEL" in os.environ
                 else str(env_file.resolve())
             ),
         )
 
-    def require_openrouter(self, *, chat=True):
+    def require_gemini(self, *, chat=True, embedding=True):
         missing = [
             name
             for name, value in (
-                ("OPENROUTER_API_KEY", self.api_key),
-                ("OPENROUTER_EMBEDDING_MODEL", self.embedding_model),
-                ("OPENROUTER_CHAT_MODEL", self.chat_model),
+                ("GEMINI_API_KEY", self.api_key),
+                ("GEMINI_EMBEDDING_MODEL", self.embedding_model),
+                ("GEMINI_CHAT_MODEL", self.chat_model),
             )
-            if (chat or name != "OPENROUTER_CHAT_MODEL") and not value.strip()
+            if (chat or name != "GEMINI_CHAT_MODEL") and (embedding or name != "GEMINI_EMBEDDING_MODEL") and not value.strip()
         ]
         if missing:
             raise ValueError("Cần cấu hình trong .env hoặc môi trường: " + ", ".join(missing))

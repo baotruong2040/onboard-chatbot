@@ -10,7 +10,7 @@ from onboarding import storage
 from onboarding.cli import main
 from onboarding.config import Config
 from onboarding.knowledge import import_documents, index_documents, split_chunks
-from onboarding.openrouter import OpenRouterClient, OpenRouterError
+from onboarding.gemini import GeminiClient, GeminiError
 
 
 class FakeClient:
@@ -31,7 +31,7 @@ class KnowledgeTest(unittest.TestCase):
             self.assertTrue(all(row["embedding_model"] == "fake-v2" for row in storage.read_chunks(database)))
             self.assertEqual(storage.read_chunks(database)[0]["embedding_dimension"], 2)
             with patch.object(FakeClient, "embed", return_value=[[float("nan")]]):
-                with self.assertRaises(OpenRouterError):
+                with self.assertRaises(GeminiError):
                     index_documents(database, FakeClient(), "broken")
             self.assertEqual(storage.read_chunks(database)[0]["embedding_model"], "fake-v2")
             document = json.loads(Path("data/demo_knowledge.json").read_text(encoding="utf-8"))["documents"][0]
@@ -49,7 +49,7 @@ class KnowledgeTest(unittest.TestCase):
             args = ["--env-file", str(Path(directory) / "missing"), "--db", str(database), "kb"]
             self.assertEqual(main(args + ["import", str(source)]), 0)
             self.assertEqual(main(args + ["list"]), 0)
-            with patch("onboarding.cli.OpenRouterClient", return_value=FakeClient()):
+            with patch("onboarding.cli.GeminiClient", return_value=FakeClient()):
                 self.assertEqual(main(args + ["index"]), 0)
             source.write_text("document_id,title\nbad,Thiếu content\n", encoding="utf-8")
             with self.assertRaises(ValueError):
@@ -59,18 +59,17 @@ class KnowledgeTest(unittest.TestCase):
 
     def test_http_contract_order_and_errors(self):
         config = Config(Path("unused"), api_key="test-secret", embedding_model="fake")
-        response = io.StringIO(json.dumps({"data": [
-            {"index": 1, "embedding": [0, 1]}, {"index": 0, "embedding": [1, 0]}
-        ]}))
-        with patch("onboarding.openrouter.urlopen", return_value=response) as request:
-            self.assertEqual(OpenRouterClient(config).embed(["a", "b"]), [[1, 0], [0, 1]])
+        response = io.StringIO(json.dumps({"embeddings": [{"values": [1, 0]}, {"values": [0, 1]}]}))
+        with patch("onboarding.gemini.urlopen", return_value=response) as request:
+            self.assertEqual(GeminiClient(config).embed(["a", "b"], input_type="search_document"), [[1, 0], [0, 1]])
             body = json.loads(request.call_args.args[0].data)
-            self.assertEqual(body["input"], ["a", "b"])
-            self.assertEqual(body["encoding_format"], "float")
+            self.assertEqual(body["requests"][0]["content"]["parts"][0]["text"], "a")
+            self.assertEqual(body["requests"][0]["taskType"], "RETRIEVAL_DOCUMENT")
+            self.assertEqual(request.call_args.args[0].get_header("X-goog-api-key"), "test-secret")
         from urllib.error import HTTPError
-        with patch("onboarding.openrouter.urlopen", side_effect=HTTPError("url", 401, "secret", {}, None)):
-            with self.assertRaisesRegex(OpenRouterError, "HTTP 401") as error:
-                OpenRouterClient(config).embed(["a"])
+        with patch("onboarding.gemini.urlopen", side_effect=HTTPError("url", 401, "secret", {}, None)):
+            with self.assertRaisesRegex(GeminiError, "HTTP 401") as error:
+                GeminiClient(config).embed(["a"])
             self.assertNotIn("secret", str(error.exception))
 
 

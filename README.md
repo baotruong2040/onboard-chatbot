@@ -1,97 +1,91 @@
 # Chatbot onboarding tiếng Việt trên console
 
-Ứng dụng Python và SQLite chạy cục bộ. Đã triển khai Bước 1–4: CLI, cấu hình, database, import JSON/CSV, index embeddings, hỏi đáp RAG và chat liên tục qua OpenRouter.
+Python 3.10+, argparse, SQLite và **Gemini API trực tiếp** cho embeddings + generation. Chỉ dùng thư viện chuẩn; không cần SDK. CLI, kho tri thức, chat và lịch sử giữ nguyên; OpenRouter không còn được runtime sử dụng.
 
-## Chạy trên Windows PowerShell
+## Cấu hình Gemini
 
-Yêu cầu Python 3.10+, chỉ dùng thư viện chuẩn. Chạy từ thư mục gốc:
+Lấy key từ [Google AI Studio](https://aistudio.google.com/apikey). Thêm các dòng sau vào `.env` hiện có, tự điền key trên máy:
+
+```dotenv
+GEMINI_API_KEY=YOUR_GEMINI_KEY
+GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta
+GEMINI_EMBEDDING_MODEL=gemini-embedding-001
+GEMINI_CHAT_MODEL=gemini-3.8-flash
+ONBOARDING_DB_PATH=.local/onboarding.sqlite3
+```
+
+Model trên là ví dụ; chọn model tài khoản được phép dùng. Không dùng ID OpenRouter như `recursive/flint-v1.0:free`. Chat và embedding là hai model riêng. Các biến `OPENROUTER_*` cũ được bỏ qua, không tự dùng lại key cũ. Không gửi key vào hội thoại hoặc commit `.env`.
+
+Biến môi trường ưu tiên hơn file; `--db` ưu tiên hơn ONBOARDING_DB_PATH. `--env-file PATH` chọn file khác. `.env` nhận KEY=VALUE, dòng chú thích # và cặp nháy; không hỗ trợ nội suy/nhiều dòng/chú thích cuối dòng. `check-chat` hiển thị nguồn model để kiểm tra override. Init/import/list không cần key. Index chỉ cần key/embedding model; check-chat chỉ cần key/chat model; ask/chat cần cả hai.
+
+## Chuyển kho hiện tại và chạy
+
+Chạy từ thư mục dự án trong PowerShell; có thể dùng `.\.venv\Scripts\python.exe` thay `python`:
 
 ```powershell
-python -m onboarding --help
-if (!(Test-Path .env)) { Copy-Item .env.example .env }
+python -m onboarding check-chat
+python -m onboarding kb index
+python -m onboarding ask "Giờ làm việc của công ty là mấy giờ?" --debug --min-score 0.3
+python -m onboarding chat --debug --min-score 0.3
+```
+
+**Bắt buộc index lại khi chuyển từ OpenRouter**. Vectors Nemotron không dùng chung với vectors Gemini. Không cần import lại tài liệu đã có; lịch sử được giữ. Mỗi database smoke riêng cũng cần index lại nếu muốn sử dụng tiếp.
+
+Với kho mới:
+
+```powershell
 python -m onboarding init
 python -m onboarding kb import data/demo_knowledge.json
 python -m onboarding kb list
 python -m onboarding kb index
-python -m onboarding ask "Giờ làm việc của công ty là mấy giờ?"
 ```
 
-Có thể dùng `.\.venv\Scripts\python.exe` thay `python`. Cài tùy chọn bằng `python -m pip install -e .` để dùng lệnh `onboarding`.
+`init` chạy lặp không xóa dữ liệu. Tùy chọn chung đứng trước subcommand: `python -m onboarding --db .local/demo.sqlite3 init`. Cài tùy chọn `python -m pip install -e .` để dùng lệnh `onboarding`.
 
-Database mặc định `.local/onboarding.sqlite3`. `init` không xóa dữ liệu. Chọn file riêng bằng `python -m onboarding --db .local/demo.sqlite3 init`; tùy chọn chung đặt trước lệnh. `--env-file PATH` chọn file cấu hình khác. Các lệnh kho tri thức tự tạo database khi chưa có.
+JSON nhận danh sách hoặc object có documents; CSV có header. Bắt buộc document_id/title/content/source_title là chuỗi không rỗng. Import kiểm tra toàn bộ trước khi ghi; trùng ID trong file bị từ chối, ID đã có được cập nhật. Title/content đổi làm mất hiệu lực embeddings liên quan; nội dung giữ nguyên thì giữ vector. Metadata khác được lưu.
 
-## Cấu hình
+Chunk theo đoạn, tối đa 1000 ký tự. Index theo batch 32, lưu vector JSON/model/dimension/task vào SQLite. Chỉ ghi sau khi mọi batch thành công và tài liệu chưa đổi. API lỗi không ghi index dở dang. `kb list` đếm vector, không xác nhận chúng thuộc model hiện cấu hình.
 
-Biến môi trường ưu tiên hơn `.env`; `--db` ưu tiên hơn `ONBOARDING_DB_PATH`. `.env` hỗ trợ `KEY=VALUE`, dòng chú thích `#`, giá trị có cặp dấu nháy; chưa hỗ trợ nội suy, nhiều dòng hay chú thích cuối dòng.
+## Retrieval và câu trả lời
 
-| Biến | Ý nghĩa |
+Giữ cosine search/top-k hiện có. **DEFAULT_MIN_SCORE hiện là 0.3** theo code ở lần kiểm tra cuối. Chưa hiệu chỉnh cho Gemini; không coi điểm Nemotron cũ là bằng chứng cho model mới. Dùng --debug kiểm tra các câu trong/ngoài kho, chỉ đoạn đạt ngưỡng mới được gửi. Thay ngưỡng không cần index lại.
+
+| Loại | Hiển thị |
 |---|---|
-| `ONBOARDING_DB_PATH` | Mặc định `.local/onboarding.sqlite3` |
-| `OPENROUTER_API_KEY` | Key riêng, cần cho index |
-| `OPENROUTER_BASE_URL` | Mặc định `https://openrouter.ai/api/v1`, phải dùng HTTPS |
-| `OPENROUTER_EMBEDDING_MODEL` | Model embeddings, cần cho index |
-| `OPENROUTER_CHAT_MODEL` | Model generation riêng cho Bước 3; chưa cần khi index |
+| grounded | Theo tài liệu — thông tin trực tiếp và nguồn [n] |
+| inferred | Suy luận từ tài liệu — cách suy luận/phép tính, giả định và nguồn |
+| estimate | Ước đoán — chưa xác nhận; có giả định, không nguồn |
+| clarification | Câu hỏi làm rõ ngắn khi thiếu dữ kiện |
 
-Không gửi key vào hội thoại hoặc commit `.env`. Import/list/init không cần key. API lỗi được báo rõ và không tự chuyển sang fake.
+Thiếu tri thức (kho rỗng/không nguồn đạt ngưỡng) vẫn gọi generation với context rỗng. Lỗi API, index thiếu vector/sai model/dimension vẫn báo lỗi, không âm thầm chuyển sang đoán. Chỉ ước đoán lịch thông thường hoặc gợi ý onboarding; không tự đặt mức lương, quyền lợi, điều kiện nghỉ phép, thông tin cá nhân, mật khẩu hoặc chính sách chính thức. Hướng dẫn chung có nguồn vẫn được phép.
 
-Đã đối chiếu tài liệu [embeddings](https://openrouter.ai/docs/api/api-reference/embeddings/submit-an-embedding-request), [catalog embeddings](https://openrouter.ai/docs/api/api-reference/embeddings/list-all-embeddings-models) và [chat completions](https://openrouter.ai/docs/api/api-reference/chat/create-a-chat-completion). Ví dụ model embeddings: [openai/text-embedding-3-small](https://openrouter.ai/openai/text-embedding-3-small); model chat: [openai/gpt-4o-mini](https://openrouter.ai/openai/gpt-4o-mini). Không dùng model chat thay cho embeddings.
+Generation trả văn bản tự nhiên, không yêu cầu JSON. `ask` và `chat` in đầy đủ text từ Gemini, giữ xuống dòng/Markdown/khoảng trắng; console chỉ thêm ký tự xuống dòng khi in. Không thêm nhãn, giả định hoặc danh sách nguồn bằng backend. Model được yêu cầu tự nêu nguồn, suy luận, giả định và nhãn ước đoán trong nội dung. Bảng trên là hướng dẫn nội dung cho model, không phải khuôn hiển thị cố định. Không còn parse/validate JSON hoặc kiểm tra trích dẫn ở backend; chưa kiểm chứng ngữ nghĩa/phép tính. Không tự retry.
 
-## Kho tri thức
+Ví dụ minh họa, không phải kết quả API thật:
 
-JSON nhận danh sách tài liệu hoặc object có trường `documents` như dữ liệu mẫu. CSV dùng hàng tiêu đề. Bốn trường bắt buộc là chuỗi không rỗng: `document_id`, `title`, `content`, `source_title`. Trường khác được giữ dưới dạng metadata; CSV lưu các giá trị metadata dạng chuỗi.
+- Kho ghi 08:30–17:30 → “Theo tài liệu: Giờ tan làm là 17:30. [1]”
+- Kho ghi 08:00 + 8 giờ làm + 1 giờ nghỉ → “Suy luận từ tài liệu: giờ kết thúc là 17:00. [1]”
+- Không có lịch → “Ước đoán — chưa xác nhận: có thể 17:00”, giả định lịch 08:00–17:00, không nguồn.
 
-Import kiểm tra toàn bộ file trước khi ghi. Trùng ID trong cùng file là lỗi. Import lại ID đã có sẽ cập nhật tài liệu. Khi title/content thay đổi, chunks cũ và embeddings tương ứng được xóa để tránh dùng vector lỗi thời; import y nguyên giữ embeddings.
+## Chat và lịch sử
 
-Chia đoạn theo heading/đoạn văn, giới hạn 1.000 ký tự; đoạn quá dài được cắt nhỏ. Index dùng title cùng nội dung đoạn, gửi tối đa 32 đoạn mỗi request, lưu vector JSON cùng model ID/dimension. `kb index` luôn tạo lại toàn bộ embeddings, phù hợp bộ demo nhỏ. Chạy lại sau khi đổi model; chỉ lưu khi mọi batch thành công và tài liệu chưa thay đổi. Nếu lỗi, index trước đó vẫn được giữ. `kb list` hiển thị số đoạn có vector, không xác nhận chúng trùng model hiện cấu hình.
+`ask` và `chat` mặc định stream text qua Gemini `streamGenerateContent?alt=sse`: mỗi đoạn được in ngay với flush, không cần thêm cờ. Embedding/retrieval vẫn hoàn tất trước khi bắt đầu generation. `check-chat` vẫn dùng một response thông thường.
 
-## Chat liên tục
+Nếu mạng ngắt, JSON SSE lỗi, hết token hoặc bị chặn, phần đã in có thể còn trên màn hình nhưng được báo chưa hoàn tất và không lưu lượt đó. Chỉ lưu sau khi nhận STOP và text không rỗng; không tự retry. Ctrl+C trong lúc chat đang stream hủy lượt và quay lại dấu nhắc; Ctrl+C với ask thoát mã 130. Response HTTP được đóng khi xong/lỗi/hủy. Giữ nguyên text, bỏ thought; không có bộ nhớ hội thoại.
 
-```powershell
-python -m onboarding chat
-python -m onboarding chat --debug
-```
+`/help` xem hướng dẫn, `/exit`, EOF hoặc Ctrl+C tại dấu nhắc để thoát. Dòng trống được bỏ qua; lỗi API cho nhập tiếp. Mỗi lần chạy tạo session UUID. Cặp hỏi/đáp lưu cùng transaction, text giữ nguyên; câu lỗi API/lệnh điều khiển không lưu. Câu mới lưu answer_type=unknown, assumptions=[] và sources=[] vì không còn metadata JSON được xác minh; nguồn/giả định do model viết nằm trong text. Không coi context retrieval là nguồn đã được trích dẫn. Lịch sử và metadata cũ giữ nguyên.
 
-Nhập câu hỏi rồi Enter. `/help` xem hướng dẫn; `/exit`, Ctrl+C tại dấu nhắc hoặc EOF để thoát. Bỏ qua dòng trống; lỗi API được báo và cho phép nhập tiếp, không tự retry. Mỗi lần chạy tạo một session; cặp câu hỏi/câu trả lời thành công và nguồn được lưu cùng nhau trong SQLite, kể cả fallback. Câu hỏi lỗi và lệnh điều khiển không được lưu.
+Không có bộ nhớ hội thoại, resume phiên hoặc lệnh xem/xóa lịch sử. Mỗi câu hỏi độc lập; câu phụ thuộc lượt trước cần hỏi lại. Dự đoán không nhập vào kho, không tạo vector và không dùng làm dữ kiện ở lượt sau. `ask` riêng lẻ không lưu lịch sử.
 
-Mỗi câu hỏi retrieval độc lập; lịch sử hiện chỉ để lưu trữ, chưa gửi lại model và chưa hỗ trợ tiếp tục phiên cũ hoặc hiểu đại từ từ câu trước. Lệnh `ask` riêng lẻ không lưu lịch sử. Chưa có lệnh xem/xóa lịch sử; dữ liệu nằm trong bảng `sessions`, `messages` tại database đã cấu hình.
+## API và kiểm tra
 
-## Kiểm tra kết nối và tests
+Client dùng header x-goog-api-key; embeddings qua [batchEmbedContents](https://ai.google.dev/api/embeddings), task RETRIEVAL_DOCUMENT/RETRIEVAL_QUERY cho gemini-embedding-001. Không giả định gemini-embedding-2 có cùng cách thiết lập task. Generation dùng generateContent với systemInstruction/contents, đọc candidates và bỏ thought. Giới hạn maxOutputTokens=4096; MAX_TOKENS/content rỗng/safety block báo lỗi và không dùng phản hồi bị cắt. Xem [tài liệu Gemini](https://ai.google.dev/gemini-api/docs) và [embeddings](https://ai.google.dev/gemini-api/docs/embeddings).
 
-Thử riêng model chat, bỏ qua embeddings/retrieval và không mở database:
-
-```powershell
-python -m onboarding check-chat
-```
-
-Lệnh gửi một request tới `/chat/completions` với `OPENROUTER_CHAT_MODEL`, mong đợi `OK`. Nếu bị HTTP 429, lỗi hiển thị endpoint/model, `provider_name`, `limit_source` và số giây Retry-After khi có; không in raw response hoặc API key. [Tài liệu lỗi OpenRouter](https://openrouter.ai/docs/api-reference/errors-and-debugging) giải thích 429 có thể liên quan giới hạn upstream; cần đọc thông tin trả về để xác định nguyên nhân cụ thể.
-
-`check-chat` cũng hiển thị nguồn model: biến môi trường hoặc đường dẫn `.env`. Nếu model khác file đã sửa, kiểm tra `$env:OPENROUTER_CHAT_MODEL` trong đúng terminal đang chạy. Biến môi trường ưu tiên hơn file; dùng `Remove-Item Env:OPENROUTER_CHAT_MODEL -ErrorAction SilentlyContinue` để bỏ override trong phiên PowerShell hiện tại rồi chạy lại. Lưu file `.env` trước khi chạy. Không in toàn bộ `.env` vì có API key.
-
-Lệnh `ask` embed câu hỏi bằng đúng model đã index, tìm cosine top-k rồi gửi context tới model chat. Backend hiển thị danh sách nguồn context cùng ID tài liệu. Nếu kho rỗng hoặc không có đoạn đạt ngưỡng, trả “Chưa có thông tin…” và không gọi chat. Nếu model báo context không đủ, cũng trả fallback không kèm nguồn.
-
-Với `nvidia/nemotron-3-embed-1b` (gồm `:free`), client gửi `input_type=passage` khi index và `input_type=query` khi hỏi, theo [tài liệu NVIDIA](https://docs.api.nvidia.com/nim/reference/nvidia-nemotron-3-embed-1b-infer). Các model khác giữ request mặc định hiện tại. Sau khi cập nhật từ bản chưa phân biệt chế độ, cần chạy `python -m onboarding kb index` một lần. SQLite tự thêm trường ghi chế độ embedding và vẫn giữ dữ liệu cũ; `ask` sẽ yêu cầu index lại với index Nemotron cũ.
-
-Nếu câu trong kho bị fallback, dùng `--debug` để xem top điểm cosine và fallback ở retrieval hay generation:
-
-```powershell
-python -m onboarding kb index
-python -m onboarding ask "Giờ làm việc của công ty là mấy giờ?" --debug
-python -m onboarding ask "Thời tiết hôm nay thế nào?" --debug
-```
-
-Ngưỡng mặc định đã giảm từ 0.5 xuống 0.3 sau khi câu giờ làm việc thật tìm đúng nguồn với cosine 0.366482. Đây là điều chỉnh ban đầu từ một câu hỏi; cần kiểm chứng thêm câu ngoài kho bằng `--debug`. Thay đổi ngưỡng không cần index lại.
-
-```powershell
-python -m onboarding ask "Xin nghỉ phép thế nào?" --top-k 3 --min-score 0.3
-python -m onboarding ask "Thời tiết hôm nay thế nào?"
-```
-
-`--min-score` mặc định 0.3 là ngưỡng thử nghiệm, không phải xác suất đúng. Phân bố cosine phụ thuộc model; cần thử câu trong/ngoài kho trên model thật để điều chỉnh. Prompt yêu cầu model chỉ dùng context nhưng chưa có bước kiểm chứng độc lập từng khẳng định. Danh sách “Nguồn context” thể hiện các đoạn đã gửi cho model, không phải xác nhận mọi nguồn đều được dùng trong câu trả lời. Thiếu vector, đổi model hoặc dimension không khớp sẽ báo chạy lại `kb index`, không tự tạo lại index hay chuyển sang fake.
+HTTP 400/401/403/404/429 được giải thích ngắn, không log raw body/key. Lỗi quota cần kiểm tra tài khoản Google; không còn provider shared pool của OpenRouter.
 
 ```powershell
 python -m unittest discover -s tests -v
+python -m compileall -q onboarding
 ```
 
-Tests chạy offline với fake client/mock HTTP, không tốn API. Có kiểm tra SQLite, config, CLI, import JSON/CSV, cập nhật/index lại và lỗi API. Smoke thật chạy riêng bằng `kb index` sau khi cấu hình key/model; có thể phát sinh phí.
-
-Dữ liệu mẫu là giả lập, không đại diện doanh nghiệp thật. Chưa có Telegram, website hoặc server. Xem tiến độ thực tế trong `docs/STATUS.md`.
+Tests dùng fake/mock, không tốn API và không chứng minh model thật suy luận đúng. Smoke thật riêng bằng check-chat, kb index, ask/chat sau khi cấu hình key Gemini; có thể phát sinh phí. Dữ liệu mẫu là giả lập. Xem docs/STATUS.md để phân biệt kết quả offline và API thật. Không có Telegram, website, server hoặc nhiều provider.
