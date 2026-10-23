@@ -1,6 +1,6 @@
-# Chatbot onboarding tiếng Việt trên console
+# Chatbot onboarding tiếng Việt — console và web local
 
-Python 3.10+, argparse, SQLite và **Gemini API trực tiếp** cho embeddings + generation. Chỉ dùng thư viện chuẩn; không cần SDK. CLI, kho tri thức, chat và lịch sử giữ nguyên; OpenRouter không còn được runtime sử dụng.
+Python 3.10+, argparse, SQLite và **Gemini API trực tiếp** cho embeddings + generation. GeminiClient dùng thư viện chuẩn; web dùng FastAPI + Uvicorn và HTML/CSS/JavaScript thuần. CLI, kho tri thức, chat và lịch sử giữ nguyên; OpenRouter không còn được runtime sử dụng.
 
 ## Cấu hình Gemini
 
@@ -75,7 +75,7 @@ Nếu mạng ngắt, JSON SSE lỗi, hết token hoặc bị chặn, phần đã
 
 `/help` xem hướng dẫn, `/exit`, EOF hoặc Ctrl+C tại dấu nhắc để thoát. Dòng trống được bỏ qua; lỗi API cho nhập tiếp. Mỗi lần chạy tạo session UUID. Cặp hỏi/đáp lưu cùng transaction, text giữ nguyên; câu lỗi API/lệnh điều khiển không lưu. Câu mới lưu answer_type=unknown, assumptions=[] và sources=[] vì không còn metadata JSON được xác minh; nguồn/giả định do model viết nằm trong text. Không coi context retrieval là nguồn đã được trích dẫn. Lịch sử và metadata cũ giữ nguyên.
 
-Không có bộ nhớ hội thoại, resume phiên hoặc lệnh xem/xóa lịch sử. Mỗi câu hỏi độc lập; câu phụ thuộc lượt trước cần hỏi lại. Dự đoán không nhập vào kho, không tạo vector và không dùng làm dữ kiện ở lượt sau. `ask` riêng lẻ không lưu lịch sử.
+Không có bộ nhớ hội thoại; web khôi phục lịch sử để hiển thị, console chưa có resume/xem lịch sử. Mỗi câu hỏi độc lập; câu phụ thuộc lượt trước cần hỏi lại. Dự đoán không nhập vào kho, không tạo vector và không dùng làm dữ kiện ở lượt sau. `ask` riêng lẻ không lưu lịch sử.
 
 ## API và kiểm tra
 
@@ -88,4 +88,38 @@ python -m unittest discover -s tests -v
 python -m compileall -q onboarding
 ```
 
-Tests dùng fake/mock, không tốn API và không chứng minh model thật suy luận đúng. Smoke thật riêng bằng check-chat, kb index, ask/chat sau khi cấu hình key Gemini; có thể phát sinh phí. Dữ liệu mẫu là giả lập. Xem docs/STATUS.md để phân biệt kết quả offline và API thật. Không có Telegram, website, server hoặc nhiều provider.
+Tests dùng fake/mock, không tốn API và không chứng minh model thật suy luận đúng. Smoke thật riêng bằng check-chat, ask/chat sau khi cấu hình Gemini; có thể phát sinh phí. Dữ liệu mẫu là giả lập. Xem docs/STATUS.md để phân biệt kết quả offline và API thật. Có web local; chưa có Telegram, React, đăng nhập, nhiều provider hoặc triển khai public.
+
+## Web local: Trợ lý Onboarding
+
+Chạy từ thư mục dự án, dùng cùng `.env` và `ONBOARDING_DB_PATH` với console:
+
+```powershell
+python -m pip install -e .
+python -m uvicorn onboarding.api:app --reload --host 127.0.0.1 --port 8000
+```
+
+Mở http://127.0.0.1:8000. Không cần index lại chỉ để dùng web; giữ nguyên key/model/index. Khởi động chỉ init SQLite, không gọi Gemini. GEMINI_API_KEY, GEMINI_BASE_URL, GEMINI_EMBEDDING_MODEL, GEMINI_CHAT_MODEL chỉ dùng ở backend. Frontend cùng origin, không bật CORS.
+
+Web dùng GeminiClient.chat nhận câu trả lời hoàn chỉnh; console vẫn stream. Giữ answer.text nguyên văn bằng textContent và pre-wrap, chưa render Markdown. Model tự nêu nguồn/suy luận/ước đoán; backend không tự thêm nhãn, xác minh nguồn hoặc coi unknown là grounded. Nhãn ước đoán không bảo đảm thông tin là chính sách thực tế.
+
+Enter gửi, Shift+Enter xuống dòng, tối đa 4000 ký tự. Khi chờ khóa gửi và hiện “Đang trả lời…”. Lỗi giữ câu hỏi để thử lại. localStorage lưu conversation_id; reload lấy lịch sử backend, phiên mất thì tạo mới. Cuộc trò chuyện mới không xóa phiên cũ; chưa có màn hình liệt kê phiên cũ. Trình duyệt chặn localStorage thì vẫn chat được nhưng không bảo đảm khôi phục khi reload.
+
+**Hãy nêu rõ chủ đề trong mỗi câu hỏi.** Lịch sử chỉ để hiển thị/lưu trữ, không gửi lại cho model. Cặp hỏi/đáp lưu cùng transaction sau generation thành công, không giữ transaction khi chờ Gemini. Nếu mất response mạng sau khi backend đã lưu, tải lại lịch sử trước khi gửi lại để tránh câu trùng.
+
+API:
+
+- GET /api/health: status ok, không gọi Gemini.
+- POST /api/conversations: conversation_id (201).
+- GET /api/conversations/{id}/messages: conversation_id và messages (id, role, content, created_at) theo id.
+- POST /api/conversations/{id}/messages với `{"message":"Giờ làm việc?"}`: conversation_id, message_id của assistant, answer.
+- 404 phiên không tồn tại; 422 câu hỏi sai/rỗng/quá dài; 502 provider lỗi; 503 cấu hình/index/storage lỗi. Không trả raw provider response/secrets.
+
+Chạy API tests offline (cần httpx):
+
+```powershell
+python -m pip install -e ".[test]"
+python -m unittest discover -s tests -v
+```
+
+Route đồng bộ chạy trong worker pool theo [tài liệu FastAPI](https://fastapi.tiangolo.com/async/). Frontend được đóng gói cùng package.

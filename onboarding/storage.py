@@ -129,3 +129,17 @@ def save_exchange(database, session_id, question, answer):
              (session_id, "assistant", answer.text, json.dumps(answer.sources, ensure_ascii=False),
               answer.answer_type, json.dumps(answer.assumptions, ensure_ascii=False))],
         )
+        return connection.execute("SELECT last_insert_rowid()").fetchone()[0]
+
+
+def session_exists(database, session_id):
+    with connect(database) as connection:
+        return connection.execute("SELECT 1 FROM sessions WHERE id=?", (session_id,)).fetchone() is not None
+
+
+def read_messages(database, session_id):
+    with connect(database) as connection:
+        return [dict(row) for row in connection.execute(
+            "SELECT id,role,content,created_at FROM messages WHERE session_id=? ORDER BY id",
+            (session_id,),
+        )]

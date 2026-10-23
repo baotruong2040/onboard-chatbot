@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trợ lý Onboarding</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <main>
+    <header><div><p class="eyebrow">CHÀO MỪNG BẠN</p><h1>Trợ lý Onboarding</h1></div><button id="new" type="button">Cuộc trò chuyện mới</button></header>
+    <p class="note">Câu trả lời có thể chứa suy luận hoặc ước đoán. Hãy kiểm tra nguồn khi cần xác nhận quy định.</p>
+    <p class="hint">Hãy nêu rõ chủ đề trong mỗi câu hỏi. Lịch sử chỉ để hiển thị và lưu trữ; trợ lý chưa có bộ nhớ hội thoại.</p>
+    <section id="messages" role="log" aria-label="Lịch sử chat" aria-live="polite"></section>
+    <p id="status" role="status"></p>
+    <form id="form">
+      <label for="message">Câu hỏi của bạn</label>
+      <div class="composer"><textarea id="message" rows="3" maxlength="4000" placeholder="Ví dụ: Giờ làm việc của công ty là mấy giờ?" required></textarea><button id="send" type="submit">Gửi</button></div>
+      <small>Enter để gửi · Shift+Enter để xuống dòng · Tối đa 4000 ký tự</small>
+    </form>
+  </main>
+</body>
+</html>

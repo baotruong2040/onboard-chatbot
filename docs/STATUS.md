@@ -2,6 +2,16 @@
 
 Cập nhật ngày 2026-10-23.
 
+## FastAPI và web local
+
+Đã thêm onboarding.api:app, FastAPI/Uvicorn và frontend HTML/CSS/JavaScript cùng origin. API tạo phiên, đọc lịch sử, gửi câu hỏi và health. Route đồng bộ dùng RAG ask/GeminiClient.chat hiện có; console giữ streaming. Không có memory, JSON phân loại hoặc tự gắn nhãn/nguồn. Web dùng textContent/pre-wrap, giữ câu hỏi khi lỗi, khóa gửi lặp, lưu conversation_id localStorage và tải lại lịch sử. Phiên mới không xóa phiên cũ.
+
+Storage thêm session_exists/read_messages và trả assistant message_id từ save_exchange. Không đổi schema, không đổi key/model hoặc index. Connection riêng từng thao tác, transaction chỉ lưu cặp hỏi/đáp sau generation. Health/startup không gọi AI, startup chỉ init DB. Provider lỗi trả thông báo chung, không echo exception/secrets. AGENTS.md cập nhật Gemini và phạm vi web local.
+
+Trước sửa 16/16 tests offline pass. Sau sửa 16 tests cũ pass; thêm 2 API tests nhưng bị skip vì thiếu FastAPI/httpx. Compileall pass. Đã thử pip install -e ".[test]" nhưng kết nối PyPI bị môi trường chặn (WinError 10013), không có packages/cache cục bộ. Vì vậy chưa chạy được Uvicorn/API tests hoặc kiểm tra giao diện bằng trình duyệt; không có browser tool hiện tại. Không gọi Gemini thật trong lần này. Cần cài dependencies rồi chạy tests và luồng web tạo phiên → hỏi → reload → phiên mới theo README; chưa tuyên bố API/UI hoặc Gemini thật đã được xác minh.
+
+Các phần bên dưới là lịch sử, trạng thái hiện tại ưu tiên mục này.
+
 ## Streaming cho ask và chat
 
 Đã thêm Gemini streamGenerateContent?alt=sse, parser SSE từng event UTF-8 và callback in/flush từng đoạn. Dùng lại request body/config hiện tại; embeddings và check-chat không đổi. Ask/chat không in lần hai sau khi stream kết thúc. Chỉ trả Answer hoàn chỉnh sau STOP và text không rỗng; chỉ lúc đó chat mới lưu nguyên văn trong SQLite.
