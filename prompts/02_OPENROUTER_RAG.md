@@ -1,0 +1,3 @@
+# Bước 3: RAG và generation
+
+Triển khai `ask` theo docs/PLAN.md. Embed câu hỏi bằng đúng embeddings model đã dùng cho tài liệu, tìm top-k bằng cosine similarity, tạo context có source metadata rồi gọi OpenRouter chat completion endpoint với `OPENROUTER_CHAT_MODEL`. Trả lời tiếng Việt chỉ dựa vào context; backend hiển thị nguồn. Nếu retrieval không có căn cứ, fallback thay vì gọi LLM đoán. Xử lý lỗi key/model/network bằng thông báo dễ hiểu. Giữ code gọn; test retrieval bằng vectors nhỏ và test một luồng có nguồn/fallback với fake client. Chạy smoke OpenRouter thật với tối đa vài câu nếu cấu hình sẵn. Cập nhật README/STATUS.

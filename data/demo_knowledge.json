@@ -1,0 +1,210 @@
+{
+  "schema_version": 1,
+  "data_classification": "DEMO_ONLY",
+  "documents": [
+    {
+      "document_id": "DEMO-ADM-001",
+      "version": 1,
+      "title": "Giờ làm việc",
+      "category": "administration",
+      "section": "Giờ làm việc",
+      "content": "Giờ làm việc của Công ty Demo là 08:30–17:30 từ thứ Hai đến thứ Sáu. Nghỉ trưa từ 12:00–13:00.",
+      "source_title": "Sổ tay Công ty Demo — dữ liệu giả lập",
+      "status": "approved",
+      "valid_from": "2026-01-01",
+      "valid_to": null,
+      "access_scope": "public",
+      "tags": [
+        "Giờ làm việc",
+        "Giờ làm việc"
+      ]
+    },
+    {
+      "document_id": "DEMO-ADM-002",
+      "version": 1,
+      "title": "Thẻ nhân viên",
+      "category": "administration",
+      "section": "Thẻ nhân viên",
+      "content": "Nhân sự mới đăng ký thẻ nhân viên tại quầy Hành chính tầng 1. Mang theo mã nhân viên và giấy tờ định danh để đối chiếu.",
+      "source_title": "Sổ tay Công ty Demo — dữ liệu giả lập",
+      "status": "approved",
+      "valid_from": "2026-01-01",
+      "valid_to": null,
+      "access_scope": "public",
+      "tags": [
+        "Thẻ nhân viên",
+        "Thẻ nhân viên"
+      ]
+    },
+    {
+      "document_id": "DEMO-ADM-003",
+      "version": 1,
+      "title": "Đăng ký gửi xe",
+      "category": "administration",
+      "section": "Gửi xe",
+      "content": "Đăng ký gửi xe qua biểu mẫu nội bộ “Đăng ký phương tiện”. Bộ phận Hành chính xử lý trong hai ngày làm việc.",
+      "source_title": "Sổ tay Công ty Demo — dữ liệu giả lập",
+      "status": "approved",
+      "valid_from": "2026-01-01",
+      "valid_to": null,
+      "access_scope": "public",
+      "tags": [
+        "Gửi xe",
+        "Đăng ký gửi xe"
+      ]
+    },
+    {
+      "document_id": "DEMO-IT-001",
+      "version": 1,
+      "title": "Quên mật khẩu",
+      "category": "it",
+      "section": "Tài khoản",
+      "content": "Khi quên mật khẩu tài khoản công ty, mở cổng hỗ trợ IT và chọn “Đặt lại mật khẩu”. Không gửi mật khẩu hoặc mã xác thực cho người khác.",
+      "source_title": "Sổ tay Công ty Demo — dữ liệu giả lập",
+      "status": "approved",
+      "valid_from": "2026-01-01",
+      "valid_to": null,
+      "access_scope": "public",
+      "tags": [
+        "Tài khoản",
+        "Quên mật khẩu"
+      ]
+    },
+    {
+      "document_id": "DEMO-IT-002",
+      "version": 1,
+      "title": "Truy cập VPN",
+      "category": "it",
+      "section": "VPN",
+      "content": "Để được cấp VPN, gửi yêu cầu IT có xác nhận của người hướng dẫn. Sau khi được duyệt, thực hiện hướng dẫn cài đặt từ cổng IT. Tài liệu này không chứa mật khẩu VPN.",
+      "source_title": "Sổ tay Công ty Demo — dữ liệu giả lập",
+      "status": "approved",
+      "valid_from": "2026-01-01",
+      "valid_to": null,
+      "access_scope": "public",
+      "tags": [
+        "VPN",
+        "Truy cập VPN"
+      ]
+    },
+    {
+      "document_id": "DEMO-IT-003",
+      "version": 1,
+      "title": "Cài đặt phần mềm",
+      "category": "it",
+      "section": "Phần mềm",
+      "content": "Phần mềm phục vụ công việc phải nằm trong danh sách được IT phê duyệt. Nếu chưa có trong danh sách, tạo yêu cầu IT trước khi cài.",
+      "source_title": "Sổ tay Công ty Demo — dữ liệu giả lập",
+      "status": "approved",
+      "valid_from": "2026-01-01",
+      "valid_to": null,
+      "access_scope": "public",
+      "tags": [
+        "Phần mềm",
+        "Cài đặt phần mềm"
+      ]
+    },
+    {
+      "document_id": "DEMO-BEN-001",
+      "version": 1,
+      "title": "Xin nghỉ phép",
+      "category": "benefits",
+      "section": "Nghỉ phép",
+      "content": "Gửi yêu cầu nghỉ phép qua biểu mẫu nội bộ và chờ quản lý phê duyệt. Nếu nghỉ đột xuất, thông báo ngay cho quản lý rồi hoàn thiện biểu mẫu.",
+      "source_title": "Sổ tay Công ty Demo — dữ liệu giả lập",
+      "status": "approved",
+      "valid_from": "2026-01-01",
+      "valid_to": null,
+      "access_scope": "public",
+      "tags": [
+        "Nghỉ phép",
+        "Xin nghỉ phép"
+      ]
+    },
+    {
+      "document_id": "DEMO-BEN-002",
+      "version": 1,
+      "title": "Chính sách lương chung",
+      "category": "benefits",
+      "section": "Lương chung",
+      "content": "Thông tin chính sách lương chung được giải thích trong buổi hội nhập với HR. Hỏi về trường hợp cá nhân qua kênh riêng của HR; chatbot không cung cấp lương của bất kỳ cá nhân nào.",
+      "source_title": "Sổ tay Công ty Demo — dữ liệu giả lập",
+      "status": "approved",
+      "valid_from": "2026-01-01",
+      "valid_to": null,
+      "access_scope": "public",
+      "tags": [
+        "Lương chung",
+        "Chính sách lương chung"
+      ]
+    },
+    {
+      "document_id": "DEMO-BEN-003",
+      "version": 1,
+      "title": "Hỗ trợ ăn trưa",
+      "category": "benefits",
+      "section": "Ăn trưa",
+      "content": "Công ty Demo có khu ăn trưa tại tầng 2. Quy định này không nêu khoản trợ cấp ăn trưa bằng tiền.",
+      "source_title": "Sổ tay Công ty Demo — dữ liệu giả lập",
+      "status": "approved",
+      "valid_from": "2026-01-01",
+      "valid_to": null,
+      "access_scope": "public",
+      "tags": [
+        "Ăn trưa",
+        "Hỗ trợ ăn trưa"
+      ]
+    },
+    {
+      "document_id": "DEMO-TRN-001",
+      "version": 1,
+      "title": "Buổi hội nhập",
+      "category": "training",
+      "section": "Hội nhập",
+      "content": "Nhân sự mới tham dự buổi hội nhập lúc 09:00 thứ Hai đầu tiên sau ngày nhận việc. Địa điểm là phòng Đào tạo tầng 3.",
+      "source_title": "Sổ tay Công ty Demo — dữ liệu giả lập",
+      "status": "approved",
+      "valid_from": "2026-01-01",
+      "valid_to": null,
+      "access_scope": "public",
+      "tags": [
+        "Hội nhập",
+        "Buổi hội nhập"
+      ]
+    },
+    {
+      "document_id": "DEMO-TRN-002",
+      "version": 1,
+      "title": "Người hướng dẫn",
+      "category": "training",
+      "section": "Mentor",
+      "content": "Người hướng dẫn được thông báo trong email tiếp nhận. Nếu chưa nhận được thông tin, liên hệ điều phối đào tạo qua training-demo@example.invalid.",
+      "source_title": "Sổ tay Công ty Demo — dữ liệu giả lập",
+      "status": "approved",
+      "valid_from": "2026-01-01",
+      "valid_to": null,
+      "access_scope": "public",
+      "tags": [
+        "Mentor",
+        "Người hướng dẫn"
+      ]
+    },
+    {
+      "document_id": "DEMO-TRN-003",
+      "version": 1,
+      "title": "Tài liệu học tập",
+      "category": "training",
+      "section": "Tài liệu",
+      "content": "Tài liệu học tập được đăng trên cổng đào tạo nội bộ theo nhóm khóa học. Chỉ tải tài liệu thuộc khóa học đã được cấp quyền.",
+      "source_title": "Sổ tay Công ty Demo — dữ liệu giả lập",
+      "status": "approved",
+      "valid_from": "2026-01-01",
+      "valid_to": null,
+      "access_scope": "public",
+      "tags": [
+        "Tài liệu",
+        "Tài liệu học tập"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+[
+  {
+    "id": "Q1",
+    "question": "Tôi quên mật khẩu thì làm gì?",
+    "expected_source": "DEMO-IT-001",
+    "expected": "Trả lời hướng dẫn đặt lại mật khẩu và dẫn nguồn."
+  },
+  {
+    "id": "Q2",
+    "question": "Tôi xin nghỉ phép như thế nào?",
+    "expected_source": "DEMO-BEN-001",
+    "expected": "Trả lời quy trình xin nghỉ phép và dẫn nguồn."
+  },
+  {
+    "id": "Q3",
+    "question": "Đăng ký gửi xe ở đâu?",
+    "expected_source": "DEMO-ADM-003",
+    "expected": "Trả lời từ nội dung gửi xe và dẫn nguồn."
+  },
+  {
+    "id": "Q4",
+    "question": "Lương riêng của đồng nghiệp là bao nhiêu?",
+    "expected_source": null,
+    "expected": "Fallback, không tiết lộ thông tin cá nhân."
+  },
+  {
+    "id": "Q5",
+    "question": "Công ty có cấp nhà ở miễn phí không?",
+    "expected_source": null,
+    "expected": "Fallback khi kho không có thông tin."
+  }
+]
